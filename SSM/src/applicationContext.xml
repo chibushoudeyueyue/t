@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+         				   http://www.springframework.org/schema/beans/spring-beans.xsd
+         				   http://www.springframework.org/schema/aop 
+					       http://www.springframework.org/schema/aop/spring-aop.xsd
+					       http://www.springframework.org/schema/tx 
+         				   http://www.springframework.org/schema/tx/spring-tx.xsd
+					       http://www.springframework.org/schema/context 
+     					   http://www.springframework.org/schema/context/spring-context.xsd
+     					   http://www.springframework.org/schema/mvc 
+     					   http://www.springframework.org/schema/mvc/spring-mvc.xsd ">
+     	<context:component-scan base-package="fun.dayue"/>
+     	<!-- 第一步：配置数据源      --> 
+     	<context:property-placeholder location="classpath:jdbc.properties"/> 
+     	<bean name="dataSource"	class="com.mchange.v2.c3p0.ComboPooledDataSource">
+     		<property name="jdbcUrl" value="${jdbc.jdbcUrl}"/>
+     		<property name="driverClass" value="${jdbc.driverClass}"/>
+     		<property name="user" value="${jdbc.user}"/>
+     		<property name="password" value="${jdbc.password}"/>
+     	</bean> 
+     	
+     	<!-- 第二步：创建sqlsessiongactory,生产sqlsession -->
+     	<bean name="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+     		<property name="dataSource" ref="dataSource"/>
+     		<!-- 加载Mybatis配置文件-->  		
+     		<property name="configLocation"	value="classpath:mybatis.xml"/>
+     		
+     		
+      	</bean>  
+   		<!-- 配置Mybatis接口代理开发
+   			*接口类名和映射文件必须同名
+   			*接口类和映射文件必须再同一个目录下
+   			*映射文件namespace必须是接口的全限定名
+   			*接口方法名要和sql语句id相同
+   		 -->
+   		 <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+   		 	<!-- 扫描接口 -->
+   		 	<property name="basePackage" value="fun.dayue.dao"></property>
+   		 	<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+   		 </bean>
+      	 
+     	<!-- 第三步：事务-->   
+     	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+     		<property name="dataSource" ref="dataSource"/>
+     	</bean>
+     	
+     	<!-- 配置通知 -->
+     	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+     		<tx:attributes>
+     			<tx:method name="save*" propagation="REQUIRED"/>
+     			<tx:method name="edit*" propagation="REQUIRED"/>
+     			<tx:method name="delete*" propagation="REQUIRED"/>
+     			<tx:method name="select*" propagation="REQUIRED"/>
+     		</tx:attributes>
+     	</tx:advice>
+     	
+     	<!-- 配置拦截service aop编程-->
+		<aop:config>
+			<aop:advisor advice-ref="txAdvice" pointcut="execution(* fun.dayue.service.*.*(..))"/>
+		</aop:config>
+</beans>
